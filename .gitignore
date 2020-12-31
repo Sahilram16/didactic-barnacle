@@ -1,23 +1,555 @@
-# Compiled class file
-*.class
+package fw_KeyValue;
 
-# Log file
-*.log
+import java.util.Date;
+import org.json.JSONObject;
 
-# BlueJ files
-*.ctxt
+public final class AllData {
+		public static final String DataStoreLocation = "C:\\Alls\\SAHILRAM";
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
+		private String p_dataLoc = "";
+		private String p_dataName = "";
 
-# Package Files #
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
+		public AllData() {
+			try {
+				p_dataLoc = DataStoreLocation;
+				p_dataName = "Alldata-" + SecondaryData.getProcessFlow();
+			} 
+			catch (Exception E) {
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
+			}
+		}
+
+		public AllData(String fileLoc) {
+			try {
+				p_dataLoc = fileLoc;
+				p_dataName = "Alldata-" + SecondaryData.getProcessFlow();
+			}
+			catch (Exception E) {
+
+			}
+		}
+		 /*
+		 * Operations (Create,Write,Delete)
+		 */
+		public synchronized String create(String keyName, JSONObject valueName) {
+			try { 
+				return create(keyName, valueName, -1);
+			} 
+			catch (Exception E) {
+				return "Creation Operation failed";
+			}
+		}
+
+		public synchronized String create(String keyName, JSONObject valueName, int AliveTime) { 
+			try {
+				String fileLoc = p_dataLoc + "/" + p_dataName;
+				if (!SecondaryData.isValidKeyValue(keyName)) {
+					return "Failed! Keylength exceeded";
+				}
+				if (SecondaryData.isKeyPresent(keyName, fileLoc)) {
+					return  "Failed! Key already available";
+				}
+				DataFile dataName = new DataFile();
+				dataName.setKey(keyName);
+				if (AliveTime > 0) {
+					dataName.setAliveTime(AliveTime);
+				}
+				else {
+					dataName.setAliveTime(-1);
+				}
+				dataName.setValue(valueName);
+				dataName.setCreationDateMilliTime(new Date().getTime());
+				
+				if (SecondaryData.writeOperation(dataName, fileLoc)) {
+					return "Create operation successful";
+				} 
+				else {
+					return "Create operation failed";
+				}
+			} 
+			catch (Exception E) {
+				return "Create operation failed";
+			}
+		}
+
+		
+		public synchronized Object read(String keyName) {
+			try {
+				String fileLoc = p_dataLoc + "/" + p_dataName;
+				if (!SecondaryData.isValidKeyValue(keyName)) {
+					return "Operation failed! Key length exceeded";
+				}
+				if (!SecondaryData.isKeyPresent(keyName, fileLoc)) {
+					return "Operation failed! Key not available";
+				}
+			
+				DataFile dataName = SecondaryData.readOperation(keyName, fileLoc);
+				if (null != dataName) {
+					return dataName.getValue();
+				}
+				return "gets failed";
+			} 
+			catch (Exception E) {
+				E.printStackTrace();
+				return "gets failed";
+			}
+		}
+
+		public synchronized Object delete(String keyName) {
+			try {
+				String fileLoc = p_dataLoc + "/" + p_dataName;
+				if (!SecondaryData.isValidKeyValue(keyName)) {
+					return " Failed! Keylength exceeded";
+				}
+				if (!SecondaryData.isKeyPresent(keyName, fileLoc)) {
+					return " Failed! Key unavailable";
+				}
+				if (SecondaryData.deleteOperation(keyName, fileLoc)) {
+					return "delete operation successful";
+				}
+				return "delete operation failed";
+			}
+			catch (Exception E) {
+				E.printStackTrace();
+				return "delete operation failed";
+			}
+		}
+	}
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  package fw_KeyValue;
+
+import java.io.Serializable;
+
+import org.json.JSONObject;
+
+public class File1 implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	String keyName;
+	int AliveTime;
+	JSONObject valueName;
+	long creationDateMilliTime;
+
+	public String getKey() {
+		return keyName;
+	}
+
+	public void setKey(String keyName) {
+		this.keyName = keyName;
+	}
+
+	public JSONObject getValue() {
+		return valueName;
+	}
+
+	public void setValue(JSONObject valueName) {
+		this.valueName = valueName;
+	}
+	
+	public int getAliveTime() {
+		return AliveTime;
+	}
+
+	public void setAliveTime(int AliveTime) {
+		this.AliveTime = AliveTime;
+	}
+
+	public long getCreationDateMilliTime() {
+		return creationDateMilliTime;
+	}
+
+	public void setCreationDateMilliTime(long creationDateMilliTime) {
+		this.creationDateMilliTime = creationDateMilliTime;
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+package project_KeyValue;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.management.ManagementFactory;
+import java.util.Date;
+import java.util.HashMap;
+
+public class File2Data {
+	
+	public static String getProcessFlow() {
+		String process_Flow = ManagementFactory.getRuntimeMXBean().getName();
+		return process_Flow;
+	}
+
+	public static boolean isValidKeyValue(String keyName) {
+		if (keyName.length() > 32) { //Maximum Key Length
+			return false;
+		}
+		return true;
+	}
+
+	public static boolean isKeyPresent(String keyName, String fileLoc) {
+		boolean isKeyPresent = false;
+		ObjectInputStream o_InputStream = null;
+		FileInputStream f_InputStream = null;
+		ObjectOutputStream o_OutputStream = null;
+		FileOutputStream f_OutputStream = null;
+		HashMap<String, DataFile> data_Value = new HashMap<String, DataFile>();
+		try {
+			File fileName = new File(fileLoc);
+			if (fileName.exists()) {
+				o_InputStream = new ObjectInputStream(f_InputStream);
+				f_InputStream = new FileInputStream(fileName);
+				data_Value = (HashMap<String, DataFile>) o_InputStream.readObject();
+				if (data_Value.containsKey(keyName)) {
+					isKeyPresent = true;
+				}
+				o_InputStream.close();
+				f_InputStream.close();
+			}
+			if (isKeyPresent) {
+				DataFile dataName = data_Value.get(keyName);
+				long presentDateMilliTime = new Date().getTime();
+				if (dataName.getAliveTime() > 0
+						&& (presentDateMilliTime - dataName
+								.getCreationDateMilliTime()) >= (dataName
+								.getAliveTime() * 1000)) { //1000-> Milliseconds
+					data_Value.remove(keyName);
+					f_OutputStream = new FileOutputStream(fileName);
+					o_OutputStream = new ObjectOutputStream(f_OutputStream);
+					o_OutputStream.writeObject(data_Value);
+					f_OutputStream.close();
+					o_OutputStream.close();
+					isKeyPresent = false;
+				}
+			}
+		} 
+		catch (Exception E) {
+			E.printStackTrace();
+		} 
+		finally {
+			if (f_InputStream != null) {
+				try {
+					f_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_InputStream != null) {
+				try {
+					o_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		return isKeyPresent;
+
+	public static boolean writeOperation(DataFile dataName, String fileLoc) {
+		
+		ObjectInputStream o_InputStream = null;
+		FileInputStream f_InputStream = null;
+		ObjectOutputStream o_OutputStream = null;
+		FileOutputStream f_OutputStream = null;
+		HashMap<String, DataFile> data_Value = null;
+		try {
+			File fileName = new File(fileLoc);
+			if (fileName.exists()) {// Read existing file data
+				f_InputStream = new FileInputStream(fileName);
+				o_InputStream = new ObjectInputStream(f_InputStream);
+				data_Value = (HashMap<String, DataFile>) o_InputStream.readObject();
+				f_InputStream.close();
+				o_InputStream.close();
+
+				// Add new element
+				data_Value.put(dataName.getKey(), dataName);
+
+				// Write data to file
+				f_OutputStream = new FileOutputStream(fileName);
+				o_OutputStream = new ObjectOutputStream(f_OutputStream);
+				o_OutputStream.writeObject(data_Value);
+				f_OutputStream.close();
+				o_OutputStream.close();
+
+				return true;
+			}
+			else {
+				data_Value = new HashMap<String, DataFile>();
+				data_Value.put(dataName.getKey(), dataName);
+
+				// write the data to file
+				f_OutputStream = new FileOutputStream(fileName);
+				o_OutputStream = new ObjectOutputStream(f_OutputStream);
+				o_OutputStream.writeObject(data_Value);
+				f_OutputStream.close();
+				o_OutputStream.close();
+
+				return true;
+			}
+		} 
+		catch (Exception E) {
+			return false;
+		} 
+		finally {
+			if (f_InputStream != null) {
+				try {
+					f_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_InputStream != null) {
+				try {
+					o_InputStream.close();
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (f_OutputStream != null) {
+				try {
+					f_OutputStream.close();
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_OutputStream != null) {
+				try {
+					o_OutputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	public static DataFile readOperation(String keyName, String fileLoc) {
+	
+		ObjectInputStream o_InputStream = null;
+		FileInputStream f_InputStream = null;
+		HashMap<String, DataFile> data_Value = null;
+		try {
+			File fileName = new File(fileLoc);
+			if (fileName.exists()) {
+				// read the existing file data
+				f_InputStream = new FileInputStream(fileName);
+				o_InputStream = new ObjectInputStream(f_InputStream);
+				data_Value = (HashMap<String, DataFile>) o_InputStream.readObject();
+
+				f_InputStream.close();
+				o_InputStream.close();
+				return data_Value.get(keyName);
+			} 
+			else {
+				return null;
+			}
+		} 
+		catch (Exception E) {
+			E.printStackTrace();
+			return null;
+		} 
+		finally {
+			if (f_InputStream != null) {
+				try {
+					f_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_InputStream != null) {
+				try {
+					o_InputStream.close();
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
+	public static boolean deleteOperation(String keyName, String fileLoc) {
+
+		ObjectInputStream o_InputStream = null;
+		FileInputStream f_InputStream = null;
+		ObjectOutputStream o_OutputStream = null;
+		FileOutputStream f_OutputStream = null;
+		HashMap<String, DataFile> data_Value = null;
+		try {
+			File fileName = new File(fileLoc);
+			if (fileName.exists()) {// Read existing file data
+				f_InputStream = new FileInputStream(fileName);
+				o_InputStream = new ObjectInputStream(f_InputStream);
+				data_Value = (HashMap<String, DataFile>) o_InputStream.readObject();
+
+				f_InputStream.close();
+				o_InputStream.close();
+
+				// Add new element
+				data_Value.remove(keyName);
+
+				// Write data to file
+				f_OutputStream = new FileOutputStream(fileName);
+				o_OutputStream = new ObjectOutputStream(f_OutputStream);
+				o_OutputStream.writeObject(data_Value);
+				f_OutputStream.close();
+				o_OutputStream.close();
+
+				return true;
+			}
+			return false;
+		} 
+		catch (Exception E) {
+			return false;
+		} 
+		finally {
+			if (f_InputStream != null) {
+				try {
+					f_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_InputStream != null) {
+				try {
+					o_InputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (f_OutputStream != null) {
+				try {
+					f_OutputStream.close();
+				}
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if (o_OutputStream != null) {
+				try {
+					o_OutputStream.close();
+				} 
+				catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+package project_KeyValue;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+public class ImpData {
+	public static void main(String[] args) throws JSONException  {
+		JSONObject jsonObject = new JSONObject();
+		jsonObject.put("firstName", "JAZ");
+		jsonObject.put("collegeName", "XYZ");
+		jsonObject.put("degree", "B.Tech");
+		
+                               JSONObject jsonObject = new JSONObject();
+		jsonObject.put("firstName", "ROSE");
+		jsonObject.put("collegeName", "ABC");
+		jsonObject.put("degree", "B.Tech");
+
+                               JSONObject jsonObject = new JSONObject();
+		jsonObject.put("firstName", "ALEX");
+		jsonObject.put("collegeName", "SSS");
+		jsonObject.put("degree", "B.Tech"); 
+
+                               JSONObject jsonObject = new JSONObject();
+		jsonObject.put("firstName", "JOHN");
+		jsonObject.put("collegeName", "SHE");
+		jsonObject.put("degree", "B.Tech");
+
+                               JSONObject jsonObject = new JSONObject();
+		jsonObject.put("firstName", "NIKIL");
+		jsonObject.put("collegeName", "NEP");
+		jsonObject.put("degree", "B.Tech");
+		Create Opreation
+		System.out.println("CREATE"); 
+		PrimaryData Datas = new PrimaryData(
+				"C:\\Users\\SAHIL\\DataStore.txt");
+		System.out.println(Datas.create("one", jsonObject, 55));
+		System.out.println(Datas.create("one", jsonObject, 55));
+		System.out.println(Datas.create("one", jsonObject));
+		System.out.println(Datas.create("ABCDEFGHIJKLMANOQRSTUVWXYZ123", new JSONObject()));
+		try {
+			Thread.sleep(5000);
+		} 
+		catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		System.out.println("AFTER WAIT"); After sleep time
+		jsonObject.put("pincode", "600099");
+		System.out.println(Datas.create("two", jsonObject, 55));
+		System.out.println(Datas.create("one", jsonObject));
+		System.out.println(Datas.create("two", jsonObject, 55));
+		
+		Read Operation
+		System.out.println("READ"); 
+		System.out.println(Datas.read("one"));
+		System.out.println(Datas.read("two"));
+		System.out.println(Datas.read("three"));
+		System.out.println(Datas.read("ABCDEFGHIJKLMANOQRSTUVWXYZ123"));
+		try {
+			Thread.sleep(5000);
+		} 
+		catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		System.out.println("AFTER WAIT"); After sleep time
+		System.out.println(Datas.read("two"));
+		System.out.println(Datas.read("three"));
+	
+		Delete Operation
+		System.out.println("DELETE");
+		System.out.println(Datas.delete("three"));
+		System.out.println(Datas.delete("one"));
+		System.out.println(Datas.delete("two"));
+		System.out.println(Datas.delete("three"));
+		System.out.println(Datas.delete("1234567890qwertyuiopasdfghjklzxcvbnm"));
+	}
+}
